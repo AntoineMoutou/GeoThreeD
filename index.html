@@ -10,7 +10,7 @@
 
     <link rel="stylesheet" href="css/style.css">
     <script type="text/javascript" src="js/three.js"></script>
-    <script type="text/javascript" src="js/FirstPersonControls.js"></script>
+    <script type="text/javascript" src="js/FlyControls2.js"></script>
   </head>
   <body>
     <header>
@@ -19,10 +19,48 @@
 
     <div id="container"></div>
 
+    <div id="settings">
+      <h1>SETTINGS</h1>
+      <div id="setDim">
+        <label>Dimension : <span id="dim">128</span></label>
+        <form>
+          <label><input type="radio" name="dimension" value="128" checked>128</label>
+          <label><input type="radio" name="dimension" value="256">256</label>
+          <label><input type="radio" name="dimension" value="512">512</label>
+        </form>
+        <button type="button" id="button">Create a new map !</button>
+      </div>
+
+      <div id=setFun>
+        <form>
+          <label><input type="checkbox" id="cbox1">Central surrection</label>
+          <label><input type="checkbox" id="cbox2">Rain</label>
+          <label><input type="checkbox" id="cbox3">Erosion</label>
+          <label><input type="checkbox" id="cbox4">Sedimentation</label>
+        </form>
+      </div>
+
+      <div id="setCtrl">
+        <p>(W,A,S,D) or (Z,Q,S,D) to move.</p>
+        <p>(Up,Left,Down,Right) to control the camera.</p>
+        <p>(R,F) to move up and down.</p>
+      </div>
+
+      <div>
+        <img id="photo">
+
+      </div>
+
+      <div class="">
+
+      </div>
+
+    </div>
+
     <footer>
       <p>Webmapping project performed by Moutou Antoine.</p>
     </footer>
 
-    <script type="text/javascript" src="js/test.js"></script>
+    <script type="text/javascript" src="js/test2.js"></script>
   </body>
 </html>
