@@ -1,4 +1,5 @@
-function render3DHeightmap(map, container) {
+function render3DHeightmap(map, matrix_water, container) {
+
   // Initialisation
   var dimX = map.length;
   var dimZ = map[0].length;
@@ -11,7 +12,6 @@ function render3DHeightmap(map, container) {
   var camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 1, 20000);
   camera.position.y = map[halfDimX][halfDimZ] * 10 + 500;
 
-
   // Terrain brut
   var geometry = new THREE.PlaneGeometry(7500, 7500, dimX - 1, dimZ - 1);
   geometry.applyMatrix(new THREE.Matrix4().makeRotationX(- Math.PI / 2));
@@ -22,11 +22,12 @@ function render3DHeightmap(map, container) {
   } // for x
 
   // Texture
-  var texture = new THREE.TextureLoader().load( "img/rock.jpg" );
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set( 4, 4 );
+  var img = update_texture(dimX,dimZ,map,matrix_water);
+  document.getElementById("photo").src = img.toDataURL();
+  var texture = new THREE.Texture(img);
+  texture.needsUpdate = true;
 
+  //Mesh
   var mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ map: texture }));
   scene.add(mesh);
 
@@ -36,14 +37,104 @@ function render3DHeightmap(map, container) {
   renderer.setSize(container.clientWidth, container.clientHeight);
 
   // Contrôleur
-  var controls = new THREE.FirstPersonControls(camera);
-  controls.movementSpeed = 500;
-  controls.lookSpeed = 0.1;
+  var controls = new THREE.FlyControls(camera);
+  controls.movementSpeed = 1000;
+  controls.rollSpeed = 0.1;
 
   container.innerHTML = "";
   container.appendChild(renderer.domElement);
 
   animate();
+
+  function update_texture(dimX,dimZ,map,matrix_water) {
+    //Update of the vertices with water effects
+
+    // if (document.getElementById("cbox2").checked) {
+    //   var rainValue = 1;
+    //   rain(matrix_water,rainValue);
+    // }
+    // if (document.getElementById("cbox3").checked) {
+    //   var absorb_coeff = 0.5;
+    //   waterflow(matrix_water, absorb_coeff);
+    // }
+
+    var rainValue = 2;
+    rain(matrix_water,rainValue);
+
+    var absorb_coeff = 0.5;
+    waterflow(matrix_water, absorb_coeff);
+
+    var max = 0;
+
+    for (var x = 0, dimX = map.length; x < dimX; x++) {
+      for (var z = 0, dimZ = map[0].length; z < dimZ; z++) {
+        if (max < map[x][z]) {
+          max = map[x][z];
+        }
+      } // for z
+    } // for x
+
+    console.log("max",max);
+
+    var canvas = document.createElement("canvas");
+    canvas.width = dimX;
+    canvas.height = dimZ;
+
+    var context = canvas.getContext("2d");
+    context.fillStyle = "#000";
+    context.fillRect(0, 0, dimX, dimZ);
+
+    var image = context.getImageData(0, 0, canvas.width, canvas.height);
+    var imageData = image.data;
+
+    var i = 0;
+
+    for (var z = 0, dimZ = map[0].length; z < dimZ; z++) {
+      for (var x = 0, dimX = map.length; x < dimX; x++) {
+
+        if (x == 0 || x == 1 || x == (dimX-1) || x == (dimX-2) || z == 0 || z == 1 || z == (dimZ-1) || z == (dimZ-2)) {
+
+          imageData[i++] = 0;
+          imageData[i++] = 127;
+          imageData[i++] = 255;
+          imageData[i++] = 255;
+
+        }
+        else {
+          if (matrix_water[x][z][1] >= 2) {
+
+            imageData[i++] = 0;
+            imageData[i++] = 127;
+            imageData[i++] = 255;
+            imageData[i++] = 255;
+          }
+          else {
+
+            if (map[x][z] < max/2) {
+              imageData[i++] = 255 * (2 * map[x][z] / max);
+              imageData[i++] = 255 ;
+              imageData[i++] = 0;
+              imageData[i++] = 255;
+            }
+            else {
+              imageData[i++] = 255;
+              imageData[i++] = 255 * (2 * (1 - map[x][z] / max));
+              imageData[i++] = 0;
+              imageData[i++] = 255;
+            }
+          }
+        }
+        if (map[x][z] < 0) {
+          console.log(map[x][z]);
+        }
+      } // for z
+    } // for x
+
+    context.putImageData(image, 0, 0);
+
+    return canvas;
+
+  }
 
   function animate() {
     requestAnimationFrame(animate);
@@ -55,6 +146,103 @@ function render3DHeightmap(map, container) {
     renderer.render(scene, camera);
   } // render
 } // draw3D
+
+function waterflow(matrix_water, absorb_coeff) {
+  //Function that perform the waterflow
+
+  //Initialisation of matrix_water_updated
+  var matrix_water_updated = [];
+
+  for (var i = 0; i < matrix_water.length; i++) {
+    var ligne = []
+    for (var j = 0; j < matrix_water[0].length; j++) {
+      ligne.push([matrix_water[i][j][0],matrix_water[i][j][1]]);
+    }
+    matrix_water_updated.push(ligne);
+  }
+
+  for (var i = 1; i < (matrix_water_updated.length - 1); i++) {
+    for (var j = 1; j < (matrix_water_updated[0].length - 1); j++) {
+      var v1 = matrix_water[i-1][j][0] + matrix_water[i-1][j][1]/10;
+      var v2 = matrix_water[i][j+1][0] + matrix_water[i][j+1][1]/10;
+      var v3 = matrix_water[i+1][j][0] + matrix_water[i+1][j][1]/10;
+      var v4 = matrix_water[i][j-1][0] + matrix_water[i][j-1][1]/10;
+      var v5 = matrix_water[i-1][j-1][0] + matrix_water[i-1][j-1][1]/10;
+      var v6 = matrix_water[i+1][j+1][0] + matrix_water[i+1][j+1][1]/10;
+      var v7 = matrix_water[i+1][j-1][0] + matrix_water[i+1][j-1][1]/10;
+      var v8 = matrix_water[i-1][j+1][0] + matrix_water[i-1][j+1][1]/10;
+
+      var min = Math.min(Math.min(Math.min(v1, v2), Math.min(v3,v4)),Math.min(Math.min(v5, v6), Math.min(v7,v8)));
+
+      if (v1 == min) {
+        matrix_water_updated[i-1][j][1] += matrix_water[i][j][1] * (1 - absorb_coeff);
+      }
+      else if (v2 == min) {
+        matrix_water_updated[i][j+1][1] += matrix_water[i][j][1] * (1 - absorb_coeff);
+      }
+      else if (v3 == min) {
+        matrix_water_updated[i+1][j][1] += matrix_water[i][j][1] * (1 - absorb_coeff);
+      }
+      else if (v4 == min) {
+        matrix_water_updated[i][j-1][1] += matrix_water[i][j][1] * (1 - absorb_coeff);
+      }
+      else if (v5 == min) {
+        matrix_water_updated[i-1][j-1][1] += matrix_water[i][j][1] * (1 - absorb_coeff);
+      }
+      else if (v6 == min) {
+        matrix_water_updated[i+1][j+1][1] += matrix_water[i][j][1] * (1 - absorb_coeff);
+      }
+      else if (v7 == min) {
+        matrix_water_updated[i+1][j-1][1] += matrix_water[i][j][1] * (1 - absorb_coeff);
+      }
+      else if (v8 == min){
+        matrix_water_updated[i-1][j+1][1] += matrix_water[i][j][1] * (1 - absorb_coeff);
+      }
+      else {
+        matrix_water_updated[i][j][1] += matrix_water[i][j][1] * (1 - absorb_coeff);
+      }
+
+      matrix_water_updated[i][j][1] -= matrix_water[i][j][1];
+    }
+  }
+
+  for (var i = 0; i < matrix_water.length; i++) {
+    for (var j = 0; j < matrix_water[0].length; j++) {
+      matrix_water[i][j][1] = matrix_water_updated[i][j][1];
+    }
+  }
+
+
+}
+
+function rain(matrix_water,rainValue) {
+  //Function that fill a matrix_water with a uniform method
+
+  for (var i = 0; i < matrix_water.length; i++) {
+    for (var j = 0; j < matrix_water[0].length; j++) {
+      matrix_water[i][j][1] += rainValue;
+    }
+  }
+}
+
+function creation_matrix_water(map) {
+  //Function that create a matrix representing the squares between the vertices with an water attribute.
+
+  var matrix_water = [];
+  for (var i = 1; i < map.length; i++) {
+    var line = [];
+    for (var j = 1; j < map[0].length; j++) {
+      if (map[i][j] == 0 || map[i-1][j] == 0 || map[i][j-1] == 0 ||map[i-1][j-1] == 0) {
+        line.push([0, 0]);
+      }
+      else {
+        line.push([(map[i][j]+map[i-1][j]+map[i][j-1]+map[i-1][j-1])/4, 0]);
+      }
+    }
+    matrix_water.push(line);
+  }
+  return matrix_water;
+}
 
 function creation_matrix_perlin(m,n,res) {
   //Method that permits to create a field matrix using the method of Perlin.
@@ -79,16 +267,12 @@ function creation_matrix_perlin(m,n,res) {
     matrix.push(line);
   }
 
-  //matrix=np.array(matrix)
-
-  //var limland = -0.20;
-  //var limforest = 0.05;
   var matrixforest = [];
 
   for (var i = 0; i < m; i++) {
     var line = [];
     for (var j = 0; j < n; j++) {
-      var a = (matrix[i][j] - minimum) / (maximum - minimum) * 100;
+      var a = (matrix[i][j] - minimum) / (maximum - minimum) * 200 * coeff_map(i,j,m,n);
       line.push(a);
     }
     matrixforest.push(line);
@@ -203,6 +387,65 @@ function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min)) + min;
 }
 
-var map = creation_matrix_perlin(200,200,25);
+function bij_coeff(k,o) {
+  var c;
+  if (o % 2 == 0) {
+    if (k < o / 2) {
+      c = k / (o / 2 - 1);
+    }
+    else {
+      c = (o - k - 1) / (o / 2 - 1);
+    }
+  }
+  else {
+    if (k < o / 2) {
+      c = k / ((o + 1) / 2 - 1);
+    }
+    else {
+      c = (o - k - 1) / ((o + 1) / 2 - 1);
+    }
+  }
+  return c;
+}
+
+function coeff_map(i, j, m, n) {
+  var a = bij_coeff(i, m);
+  var b = bij_coeff(j, n);
+  var s = Math.min(a,b);
+
+  return s;
+}
+
+function update_map() {
+
+  var dimlist = document.getElementsByName("dimension");
+  var dimension = 128;
+
+  for (var i = 0; i < dimlist.length; i++) {
+    if (dimlist[i].checked) {
+      dimension = dimlist[i].value;
+    }
+  }
+  document.getElementById("dim").innerHTML = dimension;
+  map = creation_matrix_perlin(dimension,dimension,50);
+  matrix_water = creation_matrix_water(map);
+
+  render3DHeightmap(map, matrix_water, container);
+}
+
+function set_button() {
+  //Fonction of initialisation of the event listener of the button
+
+  document.getElementById("button").addEventListener("click", function(){
+
+    //Fonction that permits to create a new map
+    update_map();
+
+  });
+}
+
+set_button();
+var mmap = creation_matrix_perlin(128,128,50);
+var mmatrix_water = creation_matrix_water(mmap);
 var container = document.getElementById("container")
-render3DHeightmap(map, container);
+render3DHeightmap(mmap, mmatrix_water, container);
