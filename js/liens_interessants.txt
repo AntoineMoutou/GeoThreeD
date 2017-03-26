@@ -1,5 +1,0 @@
-http://yahiko.co.nf/HeightmapSimpleDemo/
-
-http://yahiko.developpez.com/tutoriels/heightmap/
-
-https://www.developpez.net/forums/d1472583/applications/developpement-2d-3d-jeux/creer-terrain-relief-random/
