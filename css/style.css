@@ -3,12 +3,15 @@ html,body{
   width: 100%;
 }
 
-html,body,h1,p,#container,#settings,header,footer{
+html,body,h1,h2,p,#container,#settings,header,footer{
   margin: 0px;
   padding: 0px;
+  color: black;
+  font-family: verdana, sans-serif;
+  font-weight:inherit;
 }
 
-header,#container,#settings,footer{
+#first,#container{
   position: fixed;
 }
 
@@ -17,8 +20,6 @@ header{
   width: 100%;
 
   background: linear-gradient(to bottom, rgba(255, 255, 255, 0.5), rgba(50, 50, 50, 0.5));
-
-  z-index: 3;
 }
 
 h1{
@@ -29,7 +30,37 @@ h1{
   text-align: center;
   vertical-align: middle;
 
+  margin: 5px;
+
   width: 100%;
+}
+
+h2{
+  color: black;
+  font-family: verdana, sans-serif;
+  font-weight:inherit;
+
+}
+
+#first {
+  height: 100%;
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  z-index: 2;
+}
+
+#second {
+  height: 100%;
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-end;
 }
 
 #container{
@@ -40,18 +71,40 @@ h1{
 }
 
 #settings{
-  height: 100%;
+  height: auto;
   width: auto;
 
-  background: linear-gradient(to left, rgba(255, 255, 255, 0.5), rgba(50, 50, 50, 0.5));
+  background: linear-gradient(to top, rgba(255, 255, 255, 0), rgba(50, 50, 50, 0.5));
 
   display: flex;
   flex-direction: column;
   justify-content: space-between;
 
-  right: 0px;
+}
 
-  z-index: 2;
+#setDim form {
+  display: flex;
+  flex-direction: column;
+}
+
+#setFun form {
+  display: flex;
+  flex-direction: column;
+}
+
+#camera {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#photo {
+  height : 200px;
+  width : 200px;
+}
+
+.settings{
+  margin: 10px;
 }
 
 footer{
@@ -60,15 +113,14 @@ footer{
 
   background: linear-gradient(to top, rgba(200, 200, 200, 0.5), rgba(0, 0, 0, 0.5));
 
-
   bottom: 0px;
-
-  z-index: 3;
 }
 
 footer p{
   color: white;
   font-family: verdana, sans-serif;
+
+  margin: 5px;
 
   text-align: center;
 }
