@@ -1,4 +1,19 @@
-function render3DHeightmap(map, matrix_water, container) {
+function render3DHeightmap() {
+
+  var map = creation_matrix_perlin(128,128,50);
+
+  if (document.getElementById("cbox1").checked) {
+    surrection(map);
+  }
+
+  var matrix_water = creation_matrix_water(map);
+
+  if (document.getElementById("cbox3").checked) {
+    erosion(map,matrix_water);
+    matrix_water = creation_matrix_water(map);
+  }
+
+  var container = document.getElementById("container");
 
   // Initialisation
   var dimX = map.length;
@@ -9,8 +24,9 @@ function render3DHeightmap(map, matrix_water, container) {
   var scene = new THREE.Scene();
 
   // Caméra
-  var camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 1, 20000);
-  camera.position.y = map[halfDimX][halfDimZ] * 10 + 500;
+  var camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 200000);
+  camera.position.y = map[halfDimX][halfDimZ] * 10 + 1000;
+  camera.position.z = 10000;
 
   // Terrain brut
   var geometry = new THREE.PlaneGeometry(7500, 7500, dimX - 1, dimZ - 1);
@@ -38,8 +54,8 @@ function render3DHeightmap(map, matrix_water, container) {
 
   // Contrôleur
   var controls = new THREE.FlyControls(camera);
-  controls.movementSpeed = 1000;
-  controls.rollSpeed = 0.1;
+  controls.movementSpeed = 2000;
+  controls.rollSpeed = 0.2;
 
   container.innerHTML = "";
   container.appendChild(renderer.domElement);
@@ -49,17 +65,10 @@ function render3DHeightmap(map, matrix_water, container) {
   function update_texture(dimX,dimZ,map,matrix_water) {
     //Update of the vertices with water effects
 
-    // if (document.getElementById("cbox2").checked) {
-    //   var rainValue = 1;
-    //   rain(matrix_water,rainValue);
-    // }
-    // if (document.getElementById("cbox3").checked) {
-    //   var absorb_coeff = 0.5;
-    //   waterflow(matrix_water, absorb_coeff);
-    // }
-
-    var rainValue = 2;
-    rain(matrix_water,rainValue);
+    if (document.getElementById("cbox2").checked) {
+      var rainValue = 2;
+      rain(matrix_water,rainValue);
+    }
 
     var absorb_coeff = 0.5;
     waterflow(matrix_water, absorb_coeff);
@@ -73,8 +82,6 @@ function render3DHeightmap(map, matrix_water, container) {
         }
       } // for z
     } // for x
-
-    console.log("max",max);
 
     var canvas = document.createElement("canvas");
     canvas.width = dimX;
@@ -101,7 +108,7 @@ function render3DHeightmap(map, matrix_water, container) {
 
         }
         else {
-          if (matrix_water[x][z][1] >= 2) {
+          if (matrix_water[x][z][1] >= 4) {
 
             imageData[i++] = 0;
             imageData[i++] = 127;
@@ -124,9 +131,6 @@ function render3DHeightmap(map, matrix_water, container) {
             }
           }
         }
-        if (map[x][z] < 0) {
-          console.log(map[x][z]);
-        }
       } // for z
     } // for x
 
@@ -137,7 +141,125 @@ function render3DHeightmap(map, matrix_water, container) {
   }
 
   function animate() {
-    requestAnimationFrame(animate);
+    //Function that updates the mesh
+
+    var dimlist = document.getElementsByName("dimension");
+    var dimension = 128;
+    for (var i = 0; i < dimlist.length; i++) {
+      if (dimlist[i].checked) {
+        dimension = dimlist[i].value;
+      }
+    }
+
+    if (dimX != dimension) {
+
+      map = creation_matrix_perlin(dimension,dimension,50);
+
+      if (document.getElementById("cbox1").checked) {
+        surrection(map);
+      }
+
+      matrix_water = creation_matrix_water(map);
+
+      if (document.getElementById("cbox3").checked) {
+        erosion(map,matrix_water);
+        matrix_water = creation_matrix_water(map);
+      }
+
+      dimX = map.length;
+      dimZ = map[0].length;
+      halfDimX = Math.round(dimX / 2);
+      halfDimZ = Math.round(dimZ / 2);
+
+      geometry = new THREE.PlaneGeometry(7500, 7500, dimX - 1, dimZ - 1);
+      geometry.applyMatrix(new THREE.Matrix4().makeRotationX(- Math.PI / 2));
+      for (var x = 0; x < dimX; x++) {
+        for (var z = 0; z < dimZ; z++) {
+          geometry.vertices[x + z * dimX].y = map[x][z] * 10;
+        } // for z
+      } // for x
+
+      img = update_texture(dimX,dimZ,map,matrix_water);
+      document.getElementById("photo").src = img.toDataURL();
+      texture = new THREE.Texture(img);
+      texture.needsUpdate = true;
+
+      mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ map: texture }));
+      scene = new THREE.Scene();
+      scene.add(mesh);
+
+      renderer = new THREE.WebGLRenderer();
+      renderer.setClearColor(0xbfd1e5);
+      renderer.setSize(container.clientWidth, container.clientHeight);
+
+      container.innerHTML = "";
+      container.appendChild(renderer.domElement);
+
+    }
+
+    else {
+
+      if (document.getElementById("cbox1").checked) {
+        surrection(map);
+
+        matrix_water = creation_matrix_water(map);
+
+        if (document.getElementById("cbox3").checked) {
+          erosion(map,matrix_water);
+          matrix_water = creation_matrix_water(map);
+        }
+
+        dimX = map.length;
+        dimZ = map[0].length;
+        halfDimX = Math.round(dimX / 2);
+        halfDimZ = Math.round(dimZ / 2);
+
+        geometry = new THREE.PlaneGeometry(7500, 7500, dimX - 1, dimZ - 1);
+        geometry.applyMatrix(new THREE.Matrix4().makeRotationX(- Math.PI / 2));
+        for (var x = 0; x < dimX; x++) {
+          for (var z = 0; z < dimZ; z++) {
+            geometry.vertices[x + z * dimX].y = map[x][z] * 10;
+          } // for z
+        } // for x
+      }
+
+      else if (document.getElementById("cbox3").checked) {
+        erosion(map,matrix_water);
+        matrix_water = creation_matrix_water(map);
+
+        dimX = map.length;
+        dimZ = map[0].length;
+        halfDimX = Math.round(dimX / 2);
+        halfDimZ = Math.round(dimZ / 2);
+
+        geometry = new THREE.PlaneGeometry(7500, 7500, dimX - 1, dimZ - 1);
+        geometry.applyMatrix(new THREE.Matrix4().makeRotationX(- Math.PI / 2));
+        for (var x = 0; x < dimX; x++) {
+          for (var z = 0; z < dimZ; z++) {
+            geometry.vertices[x + z * dimX].y = map[x][z] * 10;
+          } // for z
+        } // for x
+      }
+
+      img = update_texture(dimX,dimZ,map,matrix_water);
+      document.getElementById("photo").src = img.toDataURL();
+      texture = new THREE.Texture(img);
+      texture.needsUpdate = true;
+
+      mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ map: texture }));
+      scene = new THREE.Scene();
+      scene.add(mesh);
+
+      renderer = new THREE.WebGLRenderer();
+      renderer.setClearColor(0xbfd1e5);
+      renderer.setSize(container.clientWidth, container.clientHeight);
+
+      container.innerHTML = "";
+      container.appendChild(renderer.domElement);
+
+    }
+
+    setTimeout(animate,100);
     render();
   } // animate
 
@@ -146,6 +268,26 @@ function render3DHeightmap(map, matrix_water, container) {
     renderer.render(scene, camera);
   } // render
 } // draw3D
+
+function surrection(map) {
+
+  var dimX = map.length;
+  var dimZ = map[0].length;
+  var a1 = 0.00001;
+  var a2 = 0.0000000001;
+  var a3 = 0.5;
+
+  for (var i = 0; i < map.length; i++) {
+    for (var j = 0; j < map[0].length; j++) {
+      if (map[i][j] != 0) {
+        var r = Math.sqrt((dimX/2 - i)**2 + (dimZ/2 - j)**2);
+        var mx = Math.sqrt((dimX/2)**2 + (dimZ/2)**2);
+        var s = a1 * (a3*(mx-r))**3 - a2 * (r**2);
+        map[i][j] += s;
+      }
+    }
+  }
+}
 
 function waterflow(matrix_water, absorb_coeff) {
   //Function that perform the waterflow
@@ -167,12 +309,13 @@ function waterflow(matrix_water, absorb_coeff) {
       var v2 = matrix_water[i][j+1][0] + matrix_water[i][j+1][1]/10;
       var v3 = matrix_water[i+1][j][0] + matrix_water[i+1][j][1]/10;
       var v4 = matrix_water[i][j-1][0] + matrix_water[i][j-1][1]/10;
-      var v5 = matrix_water[i-1][j-1][0] + matrix_water[i-1][j-1][1]/10;
-      var v6 = matrix_water[i+1][j+1][0] + matrix_water[i+1][j+1][1]/10;
-      var v7 = matrix_water[i+1][j-1][0] + matrix_water[i+1][j-1][1]/10;
-      var v8 = matrix_water[i-1][j+1][0] + matrix_water[i-1][j+1][1]/10;
+      // var v5 = matrix_water[i-1][j-1][0] + matrix_water[i-1][j-1][1]/10;
+      // var v6 = matrix_water[i+1][j+1][0] + matrix_water[i+1][j+1][1]/10;
+      // var v7 = matrix_water[i+1][j-1][0] + matrix_water[i+1][j-1][1]/10;
+      // var v8 = matrix_water[i-1][j+1][0] + matrix_water[i-1][j+1][1]/10;
 
-      var min = Math.min(Math.min(Math.min(v1, v2), Math.min(v3,v4)),Math.min(Math.min(v5, v6), Math.min(v7,v8)));
+      // var min = Math.min(Math.min(Math.min(v1, v2), Math.min(v3,v4)),Math.min(Math.min(v5, v6), Math.min(v7,v8)));
+      var min = Math.min(Math.min(v1, v2), Math.min(v3,v4));
 
       if (v1 == min) {
         matrix_water_updated[i-1][j][1] += matrix_water[i][j][1] * (1 - absorb_coeff);
@@ -186,18 +329,18 @@ function waterflow(matrix_water, absorb_coeff) {
       else if (v4 == min) {
         matrix_water_updated[i][j-1][1] += matrix_water[i][j][1] * (1 - absorb_coeff);
       }
-      else if (v5 == min) {
-        matrix_water_updated[i-1][j-1][1] += matrix_water[i][j][1] * (1 - absorb_coeff);
-      }
-      else if (v6 == min) {
-        matrix_water_updated[i+1][j+1][1] += matrix_water[i][j][1] * (1 - absorb_coeff);
-      }
-      else if (v7 == min) {
-        matrix_water_updated[i+1][j-1][1] += matrix_water[i][j][1] * (1 - absorb_coeff);
-      }
-      else if (v8 == min){
-        matrix_water_updated[i-1][j+1][1] += matrix_water[i][j][1] * (1 - absorb_coeff);
-      }
+      // else if (v5 == min) {
+      //   matrix_water_updated[i-1][j-1][1] += matrix_water[i][j][1] * (1 - absorb_coeff);
+      // }
+      // else if (v6 == min) {
+      //   matrix_water_updated[i+1][j+1][1] += matrix_water[i][j][1] * (1 - absorb_coeff);
+      // }
+      // else if (v7 == min) {
+      //   matrix_water_updated[i+1][j-1][1] += matrix_water[i][j][1] * (1 - absorb_coeff);
+      // }
+      // else if (v8 == min){
+      //   matrix_water_updated[i-1][j+1][1] += matrix_water[i][j][1] * (1 - absorb_coeff);
+      // }
       else {
         matrix_water_updated[i][j][1] += matrix_water[i][j][1] * (1 - absorb_coeff);
       }
@@ -205,14 +348,11 @@ function waterflow(matrix_water, absorb_coeff) {
       matrix_water_updated[i][j][1] -= matrix_water[i][j][1];
     }
   }
-
   for (var i = 0; i < matrix_water.length; i++) {
     for (var j = 0; j < matrix_water[0].length; j++) {
       matrix_water[i][j][1] = matrix_water_updated[i][j][1];
     }
   }
-
-
 }
 
 function rain(matrix_water,rainValue) {
@@ -221,6 +361,34 @@ function rain(matrix_water,rainValue) {
   for (var i = 0; i < matrix_water.length; i++) {
     for (var j = 0; j < matrix_water[0].length; j++) {
       matrix_water[i][j][1] += rainValue;
+    }
+  }
+}
+
+function erosion(map,matrix_water) {
+
+  for (var i = 1; i < matrix_water.length-1; i++) {
+    for (var j = 1; j < matrix_water[0].length-1; j++) {
+
+      var v1 = matrix_water[i-1][j][0] + matrix_water[i-1][j][1]/10;
+      var v2 = matrix_water[i][j+1][0] + matrix_water[i][j+1][1]/10;
+      var v3 = matrix_water[i+1][j][0] + matrix_water[i+1][j][1]/10;
+      var v4 = matrix_water[i][j-1][0] + matrix_water[i][j-1][1]/10;
+
+      var max = Math.max(Math.max(v1, v2), Math.max(v3,v4));
+      var min = Math.min(Math.min(v1, v2), Math.min(v3,v4));
+
+      var slope = (max-min)/2 + 1;
+
+      var a1 = 0.05;
+
+      var s = a1 * matrix_water[i][j][1] ;
+
+      map[i][j] -= s;
+
+      if (map[i][j] < 0) {
+        map[i][j] = 0;
+      }
     }
   }
 }
@@ -242,6 +410,25 @@ function creation_matrix_water(map) {
     matrix_water.push(line);
   }
   return matrix_water;
+}
+
+function creation_matrix_hardness(map) {
+  //Function that create a matrix representing the squares between the vertices with an hardness attribute.
+
+  var matrix_hardness = [];
+  for (var i = 1; i < map.length; i++) {
+    var line = [];
+    for (var j = 1; j < map[0].length; j++) {
+      if (map[i][j] == 0 || map[i-1][j] == 0 || map[i][j-1] == 0 ||map[i-1][j-1] == 0) {
+        line.push([0, 0]);
+      }
+      else {
+        line.push([(map[i][j]+map[i-1][j]+map[i][j-1]+map[i-1][j-1])/4, 0]);
+      }
+    }
+    matrix_hardness.push(line);
+  }
+  return matrix_hardness;
 }
 
 function creation_matrix_perlin(m,n,res) {
@@ -416,36 +603,4 @@ function coeff_map(i, j, m, n) {
   return s;
 }
 
-function update_map() {
-
-  var dimlist = document.getElementsByName("dimension");
-  var dimension = 128;
-
-  for (var i = 0; i < dimlist.length; i++) {
-    if (dimlist[i].checked) {
-      dimension = dimlist[i].value;
-    }
-  }
-  document.getElementById("dim").innerHTML = dimension;
-  map = creation_matrix_perlin(dimension,dimension,50);
-  matrix_water = creation_matrix_water(map);
-
-  render3DHeightmap(map, matrix_water, container);
-}
-
-function set_button() {
-  //Fonction of initialisation of the event listener of the button
-
-  document.getElementById("button").addEventListener("click", function(){
-
-    //Fonction that permits to create a new map
-    update_map();
-
-  });
-}
-
-set_button();
-var mmap = creation_matrix_perlin(128,128,50);
-var mmatrix_water = creation_matrix_water(mmap);
-var container = document.getElementById("container")
-render3DHeightmap(mmap, mmatrix_water, container);
+render3DHeightmap();
